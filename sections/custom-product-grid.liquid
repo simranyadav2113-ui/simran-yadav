@@ -1,0 +1,634 @@
+{% comment %}
+  SCHEMA FOR DYNAMICALLY ADDING THE NEW CUSTOM HEADER
+{% endcomment %}
+{% schema %}
+{
+    "name": "Custom Product Grid",
+    "settings": [
+        {
+            "type": "select",
+            "id": "section_width",
+            "label": "Section Width",
+            "default": "full",
+            "options": [
+                { "value": "full", "label": "Full Width" },
+                { "value": "page", "label": "Page Width" },
+            ]
+        },
+        {
+            "type": "text",
+            "id": "heading",
+            "label": "Grid Heading"
+        },
+        {
+            "type": "range",
+            "id": "prod_per_row",
+            "label": "Products Per Row",
+            "min": 2,
+            "max": 4,
+            "step": 1,
+            "default": 3
+        },
+        {
+            "type": "header",
+            "content": "Modal Positions - On card / Centered"
+        },
+        {
+            "type": "radio",
+            "id": "modal_position",
+            "label": "Modal Position",
+            "default": "on_card",
+            "options": [
+                {
+                    "value": "centered",
+                    "label": "Centered on Page"
+                },
+                {
+                    "value": "on_card",
+                    "label": "On Parent Card (Only Desktop)"
+                }
+            ]
+        },
+        {
+            "type": "header",
+            "content": "Heading Text Settings"
+        },
+        {
+            "type": "color",
+            "id": "text_color",
+            "label": "Grid Heading Text Color",
+            "default": "#000000"
+        },
+        {
+            "type": "range",
+            "id": "font_size",
+            "label": "Text Size (px)",
+            "min": 20,
+            "max": 100,
+            "step": 10,
+            "default": 30
+        },
+    ],
+    "blocks": [
+        {
+            "type": "product",
+            "name": "Product",
+            "limit": 6,
+            "settings": [
+                { 
+                    "type": "product", 
+                    "id": "product", 
+                    "label": "Select Product" 
+                },
+                {
+                    "type": "range",
+                    "id": "hotspot_x",
+                    "label": "Focal Point Horizontal (%)",
+                    "min": 0,
+                    "max": 100,
+                    "step": 1,
+                    "default": 50
+                },
+                {
+                    "type": "range",
+                    "id": "hotspot_y",
+                    "label": "Focal Point vertical (%)",
+                    "min": 0,
+                    "max": 100,
+                    "step": 1,
+                    "default": 50
+                }
+            ]
+        }
+    ],
+    "presets": [
+        {
+            "name": "Custom Product Grid"
+        }
+    ]
+}
+{% endschema %}
+
+{% comment %}
+  HTML FOR HEADER WITH DYNAMIC SCHEMA VALUES
+{% endcomment %}
+<section class="product-grid-custom {% if section.settings.section_width == "full" %}container-full{% else %}container{% endif %}">
+    <div class="grid-header">
+        <h2 style="color: {{ section.settings.text_color }}; font-size:{{ section.settings.font_size }}px;">
+            {{ section.settings.heading }}
+        </h2>
+    </div>
+
+    <!-- creating grid based on the products selected in the schema -->
+    <div class="grid-wrapper" style="--columns: {{ section.settings.prod_per_row }};">
+        {% assign modalPos = section.settings.modal_position %}
+        {% for block in section.blocks %}
+            {% assign product = block.settings.product %}
+            {% if product %}
+                <div class="product-card">
+                    <img src="{{ product.featured_image | image_url: width:400 }}" class="card-image" width="100" height="100" alt="{{ product.title }}">
+                
+                    <button class="hotspot"
+                            data-modal="modal-{{ product.id }}"
+                            style="top: {{ block.settings.hotspot_y }}%;
+                                    left: {{ block.settings.hotspot_x }}%;">
+                        +
+                    </button>
+
+                    <div class="modal-backdrop"></div>
+                    <!-- Modal can be displayed over each parent card or can be displayed at the center - option to change the position -->
+                    <div class="card-modal {% if modalPos == "centered" %}centered-modal{% else %}product-modal{% endif %}" id="modal-{{ product.id }}">
+                        <div class="modal-content">
+                            <span class="close">&times;</span>
+                            
+                            <!-- Modal Top Row Content (image & description) -->
+                            <div class="modal-row modal-top">
+
+                                <!-- Modal Image (Left) -->
+                                <div class="modal-image">
+                                    <img src="{{ product.featured_image | image_url: width: 600 }}" width="50" height="50" alt="{{ product.title }}">
+                                </div>
+
+                                <!-- Modal Product Details (Right) -->
+                                <div class="modal-info">
+                                    <h3>{{ product.title }}</h3>
+                                    <p class="price">
+                                        {{ product.price | money }}
+                                    </p>
+                                    <p class="description">
+                                        {{ product.description | strip_html | truncate: 120 }}
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <!-- Modal Product Form Starts Here -->
+                            <form class="product-form">
+                                <script type="application/json" class="variant-data">
+                                    {{ product.variants | json }}
+                                </script>
+                                <input type="hidden" name="id" class="variant-id" value="{{ product.variants.first.id }}">
+
+                                <!-- Modal 2nd Row Content (color variants) -->
+                                {% for option in product.options_with_values %}
+                                    {% if option.name == 'Color' %}
+                                        <div class="modal-row">
+                                            <div class="variant-options colors" data-option="color">
+                                                {% for value in option.values %}
+                                                    <button type="button" 
+                                                            class="variant-btn color-btn"
+                                                            data-value={{ value }}
+                                                            data-variant={{ value.variant.id }}>
+                                                        <span class="color-srtip"
+                                                            style="background-color: {{ value | downcase }}"></span>
+                                                        <span class="color-name">
+                                                            {{ value }}
+                                                        </span>
+                                                    </button>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+
+                                <!-- Modal 3rd Row Content (Size variants) -->
+                                {% for option in product.options_with_values %}
+                                    {% if option.name == 'Size' %}
+                                        <div class="modal-row">
+                                            <select class="size-dropdown" data-option="size">
+                                                {% for value in option.values %}
+                                                    <option value="{{ value }}" data-variant={{ value.variant.id }}>
+                                                        {{ value }}
+                                                    </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+
+                                <!-- Modal 4th and last Row Content (Form Button) -->
+                                <div class="modal-row">
+                                    <button type="button" class="add-to-cart">
+                                        Add To Cart
+                                        <span class="arrow"><img src="https://cdn.shopify.com/s/files/1/0782/7934/4313/files/Line_15.png?v=1776453750" alt="icon" width="24", height="24"></span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+</section>
+
+{% comment %}
+  CSS STARTS HERE ===============================
+{% endcomment %}
+<style>
+    .container{
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: clamp(16px, 2vw, 24px);
+    }
+    .container-full{
+        width: 100% !important;
+        padding: clamp(10px, 1.5vw, 30px);
+    }
+    /*---Product grid css---*/
+    .product-grid-custom{
+        padding: clamp(24px, 4vw, 60px);
+    }
+    .grid-wrapper{
+        display:grid;
+        grid-template-columns: repeat(var(--columns), 1fr);
+        gap: 2vw;
+    }
+    .grid-header h2 {
+        margin-bottom: clamp(16px, 2vw, 32px);
+        font-weight: 500;
+        font-size: clamp(25px, 4vw, 40px) !important;
+    }
+    /*---product card starts here---*/
+    .product-card{
+        position: relative;
+        z-index: unset;
+    }
+    .product-card .card-image{
+        width: 100%;
+        height: 100%;
+        transition: 0.3s;
+        aspect-ratio: 1/1;
+        object-fit: cover;
+    }
+    .hotspot{
+        position: absolute;
+        transform: translate(-50%, -50%);
+        background: #fff;
+        color: #000;
+        border-radius: 50%;
+        height: 2vw;
+        width: 2vw;
+        cursor: pointer;
+        z-index: 0;
+        outline: none;
+        border: none;
+        font-weight: 600;
+        font-size: 15px;
+    }
+    /*---modal css - centered / on card position---*/
+    .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: #0000008c;
+        z-index: 9;
+        opacity: 0;
+        pointer-events: none;
+        transition: 0.3s ease;
+    }
+    .modal-backdrop.active {
+        opacity: 1;
+        pointer-events: auto;
+    }
+    .centered-modal {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -59%);
+        z-index: 9999;
+        background: white;
+        height: auto;
+        width: clamp(300px, 35vw, 500px);
+        max-height: 85vh;
+        overflow-y: auto;
+        padding: clamp(16px, 2vw, 30px);
+        border-radius: 4px;
+        opacity: 0;
+        pointer-events: none;
+        transition: 0.3s ease;
+    }
+    .centered-modal.active{
+        opacity: 1;
+        pointer-events: auto;
+    }
+    .product-modal {
+        position: absolute;
+        top: 10%;
+        left: 5%;
+        width: 90%;
+        max-height: 80vh;
+        background: #FFF;
+        padding: clamp(12px, 1.5vw, 20px);
+        z-index: 10;
+        border-radius: 16px;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(10px) scale(0.98);
+        transition: 0.3s ease;
+    }
+    .product-modal.active{
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateY(0) scale(1);
+    }
+    .close {
+        position: absolute;
+        right: 12px;
+        top: 8px;
+        font-weight: 900;
+        font-size: clamp(20px, 2vw, 26px);
+        cursor: pointer;
+        z-index: 2;
+    }
+    .modal-row{
+        margin-bottom: 1.5vw;
+    }
+
+    /*----Left Content Modal (Image)----*/
+    .modal-top {
+        display: flex;
+        gap: 1.5vw;
+    }
+    .modal-image {
+        width: 40%;
+        aspect-ratio: 1 / 1;
+        overflow: hidden;
+        border-radius: 6px;
+    }
+    .modal-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .modal-info{
+        width: 60%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    .modal-info h3 {
+        margin: 6px 0;
+        font-size: clamp(14px, 1.2vw, 20px);
+    }
+    .modal-info .price {
+        font-weight: 600;
+        margin-bottom: 6px;
+    }
+    .modal-info .description {
+        font-size: clamp(12px, 1vw, 14px);
+        line-height: 1.4;
+    }
+
+    /*--- 2nd Row Content(variant colors)---*/
+    .variant-options.colors {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1vw;
+    }
+    .variant-btn.active {
+        outline: 1px solid #000;
+    }
+    .color-btn {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        border: 1px solid #ddd;
+        background: #fff;
+        cursor: pointer;
+        padding: 0;
+    }
+    .color-srtip {
+        width: 12%;
+        height: clamp(32px, 3vw, 42px);
+        border-right: 1px solid #dddddd;
+        pointer-events: none;
+    }
+    .color-name {
+        padding: 0 12px;
+        font-size: clamp(12px, 1vw, 14px);
+        text-align: left;
+        pointer-events: none;
+    }
+    /*---3rd Row Content (Size Dropdown)---*/
+    .size-dropdown {
+        width: 100%;
+        padding: clamp(8px, 1vw, 12px);
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+    /*---Last Row Content (Add To Cart Button)---*/
+    .add-to-cart {
+        width: 100%;
+        padding: clamp(10px, 1.5vw, 14px);
+        background: #000;
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        transition: 0.3s;
+        text-transform: uppercase;
+        font-size: clamp(12px, 1vw, 14px);
+    }
+    .add-to-cart .arrow{
+        transition: 0.3s ease;
+        pointer-events: none;
+    }
+    .add-to-cart:hover .arrow{
+        transform: translateX(4px);
+        transition: transform 0.3 ease;
+    }
+    .add-to-cart:hover{
+        opacity: 0.85;
+    }
+    <!--- media queries for responsive viewports --->
+    @media (max-width: 768px){
+        .grid-wrapper{
+            grid-template-columns: repeat(2, 1fr);
+        }
+        .product-modal{
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -59%);
+            z-index: 9999;
+            background: white;
+            height: auto;
+            width: clamp(300px, 35vw, 500px);
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: clamp(16px, 2vw, 30px);
+            border-radius: 4px;
+            opacity: 0;
+            pointer-events: none;
+            transition: 0.3s ease;
+        }
+        .product-modal.active{
+            transform: translate(-50%, -50%);
+        }
+        .grid-header h2{
+            text-align: center;
+        }
+        .hotspot{
+            height: 4vw;
+            width: 4vw;
+        }
+    }
+    @media (min-width: 2056px){
+        .hotspot{
+            font-size: 1.5vw;
+        }
+    }
+</style>
+
+{% comment %}
+  SCRIPTING FOR MODAL FUNCTIONING AND ADD TO CART STARTS HERE
+{% endcomment %}
+<script>
+    document.addEventListener("click", function(e){
+        /*----OPEN MODAL----*/
+        if(e.target.classList.contains('hotspot')){
+            const card = e.target.closest(".product-card");
+            const modal = card.querySelector(".card-modal");
+            const backdrop = card.querySelector(".modal-backdrop");
+            if(backdrop){
+                document.querySelector(".modal-backdrop").classList.remove("active");
+                backdrop.classList.add("active");
+            }
+
+            document.querySelectorAll(".card-modal").forEach(m => m.classList.remove("active"));
+            document.querySelectorAll(".product-card").forEach(m => m.classList.remove("active"));
+            
+
+            modal.classList.add("active");
+            card.classList.add("active");
+            
+        }
+
+        /*----CLOSE MODAL----*/
+        if(e.target.classList.contains("close")){
+            const card = e.target.closest(".product-card");
+            const modal = e.target.closest(".card-modal");
+            const backdrop = card.querySelector(".modal-backdrop");
+            if (backdrop){
+                backdrop.classList.remove("active");
+            }
+
+            modal.classList.remove("active");
+            card.classList.remove("active");
+            
+        }
+
+        /*----COLOR SELECTION----*/
+        if(e.target.classList.contains("color-btn")){
+            const btn = e.target;
+            const form = btn.closest(".product-form");
+
+            if(!form) return;
+
+            form.querySelectorAll(".color-btn").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+
+            updateVariant(form);
+        }
+
+        /*----ADD TO CART FUNCTIONALITY---*/
+        if(e.target.classList.contains("add-to-cart")){
+            const form = e.target.closest(".product-form");
+            if(!form) return;
+
+            const color = form.querySelector(".color-btn.active")?.dataset.value;
+            const size = form.querySelector(".size-dropdown")?.value;
+
+            const variantId = form.querySelector(".variant-id").value;
+            const button = e.target;
+
+            if(!button.dataset.originalHTML){
+                button.dataset.originalHTML = button.innerHTML
+            }
+
+            let message = "";
+            if(!color) message = "Please select a color";
+            else if(!size) message = "Please select a size";
+
+            if(message){
+                button.disabled = true;
+                button.innerText = message;
+                return false;
+            }
+
+            button.disabled = true;
+
+            fetch('/cart/add.js', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: variantId,
+                    quantity: 1
+                })
+            })
+            .then(res => res.json())
+            .then(() => {
+
+                button.innerText = "Added";
+                setTimeout(() => {
+                    button.innerHTML = button.dataset.originalHTML;
+                    button.disabled = false;
+                },1500);
+            })
+            .catch(() =>{
+                button.innerText = "Error";
+                button.disabled = false;
+            });
+        }
+    });
+        
+
+    /*----SIZE CHANGE EVENT----*/
+    document.addEventListener("change", function(e){
+        if(e.target.classList.contains("size-dropdown")){
+            debugger;
+            const form = e.target.closest(".product-form");
+            if(!form) return;
+            updateVariant(form);
+        }
+    });
+    /*-----UPDATE VARIANT IN HIDDEN INPUT FUNCTION----*/
+    function updateVariant(form){
+        const modal = form.closest(".card-modal");
+        if(!modal) return;
+
+        const button = form.querySelector(".add-to-cart");
+        if(!button.dataset.originalHTML){
+            button.dataset.originalHTML = button.innerHTML
+        }
+        button.disabled = false;
+        button.innerHTML = button.dataset.originalHTML;
+
+        const variants = JSON.parse(
+            modal.querySelector(".variant-data").textContent
+        )
+
+        const selectedColor = form.querySelector(".color-btn.active")?.dataset.value;
+        if(!selectedColor) return;
+        const selectedSize = form.querySelector(".size-dropdown")?.value;
+        if(!selectedSize) return;
+
+        const matched = variants.find(v => {
+
+            return (
+                (!selectedSize || v.option1 === selectedSize )&&
+                (!selectedColor || v.option2 === selectedColor )
+            )
+        });
+
+        if(matched){
+            form.querySelector(".variant-id").value = matched.id;
+        }
+    }
+   
+</script>
+
+
+

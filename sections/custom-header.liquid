@@ -1,0 +1,306 @@
+{% comment %}
+  SCHEMA FOR DYNAMICALLY ADDING THE NEW CUSTOM HEADER
+{% endcomment %}
+{% schema %}
+{
+    "name": "Custom Header",
+    "settings": [
+        {
+            "type": "select",
+            "id": "section_width",
+            "label": "Section Width",
+            "default": "full",
+            "options": [
+                { "value": "full", "label": "Full Width" },
+                { "value": "page", "label": "Page Width" },
+            ]
+        },
+        {
+            "type": "header",
+            "content": "Header Logo Fields"
+        },
+        {
+            "type": "image_picker",
+            "id": "logo_header",
+            "label": "Header Logo"
+        },
+        {
+            "type": "range",
+            "id": "logo_height",
+            "label": "Logo Height",
+            "min": 20,
+            "max": 100,
+            "step": 5,
+            "default": 20
+        },
+        {
+            "type": "text",
+            "id": "content_header",
+            "label": "Header Content",
+        },
+        {
+            "type": "header",
+            "content": "Header Content Fields"
+        },
+        {
+            "type": "text",
+            "id": "HButton_Text",
+            "label": "Header Button Text",
+            "default": "Shop Now"
+        },
+        {
+            "type": "url",
+            "id": "HButton_link",
+            "label": "Header Button Link"
+        },
+        {
+            "type": "header",
+            "content": "Header Settings"
+        },
+        {
+            "type": "color",
+            "id": "center_text_clr",
+            "label": "Header Text Color",
+            "default": "#000000"
+        },
+        {
+            "type": "color",
+            "id": "button_text_clr",
+            "label": "Header Button Text Color",
+            "default": "#FFFFFF"
+        },
+        {
+            "type": "color",
+            "id": "button_bg_clr",
+            "label": "Header Button Background Color",
+            "default": "#000000"
+        },
+        {
+            "type": "color",
+            "id": "header_bg_clr",
+            "label": "Header Background Color",
+            "default": "#FFFFFF"
+        }
+    ],
+    "presets": [
+        {
+            "name": "Custom Header"
+        }
+    ]
+}
+{% endschema %}
+
+
+{% comment %}
+  HTML FOR HEADER WITH DYNAMIC SCHEMA VALUES
+{% endcomment %}
+<header class="custom-header {% if section.settings.section_width == "full" %}container-full{% else %}container{% endif %}"
+        style="
+            --text-color: {{ section.settings.center_text_clr }};
+            --btn-text: {{ section.settings.button_text_clr }};
+            --btn-bg: {{ section.settings.button_bg_clr }};
+            --header-clr: {{ section.settings.header_bg_clr }};
+            --logo-height: {{ section.settings.logo_height }}px;
+        "
+>
+    <!-- Mobile Menu Icon -->
+    <button class="menu-toggle" onclick="openMenu(this)">
+        <img src="https://cdn.shopify.com/s/files/1/0782/7934/4313/files/Hamburger_Mobile.png?v=1776499072" alt="menu hamburger" width="24" height="24">
+    </button>
+    <!-- Mobile close drawer button -->
+    <button class="close-btn" onclick="closeMenu(this)">&times;</button>
+
+    <div class="header-left">
+        {% if section.settings.logo_header != blank %}
+            <img src="{{ section.settings.logo_header | image_url: width: 300 }}" 
+                width="20" height="20" 
+                alt="{{ section.settings.logo_header.alt }}"
+                class="header-logo"
+            >
+        {% else %}
+            <span class="logo-placeholder">LOGO</span>
+        {% endif %}
+    </div>
+    <div class="header-center hide-mobile">
+        <p>{{ section.settings.content_header }}</p>
+    </div>
+    <div class="header-right hide-mobile">
+        {% if section.settings.HButton_Text != blank %}
+            <a href="{{ section.settings.HButton_link }}" class="header-btn">
+                {{ section.settings.HButton_Text }}
+                <span class="arrow"><img src="https://cdn.shopify.com/s/files/1/0782/7934/4313/files/Line_15.svg?v=1776449595" alt="icon" width="24" height="24"></span>
+            </a>
+        {% endif %}
+    </div>
+    
+    <!-- Mobile Drawer -->
+    <div class="mobile-drawer" id="mobileDrawer">
+        <div class="drawer-content">
+            <p>{{ section.settings.content_header }}</p>
+            <a href="{{ section.settings.HButton_link }}" class="header-btn">
+                {{ section.settings.HButton_Text }}
+                <span class="arrow"><img src="https://cdn.shopify.com/s/files/1/0782/7934/4313/files/Line_15.svg?v=1776449595" alt="icon" width="24" height="24"></span>
+            </a>
+        </div>
+    </div>
+</header>
+
+{% comment %}
+  CSS STARTS HERE ===============================
+{% endcomment %}
+<style>
+    .container{
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: clamp(16px, 2vw, 24px);
+    }
+    .container-full{
+        width: 100% !important;
+        padding: clamp(10px, 1.5vw, 30px);
+    }
+    .custom-header {
+        display: flex;
+        flex-flow: row;
+        gap: 12px;
+        align-items: center;
+        justify-content: space-between;
+        background-color: var(--header-clr);
+    }
+    header-left, 
+    header-center, 
+    header-right{
+        width: 100%;
+        text-align: center;
+    }
+    .hide-mobile{
+        display:block;
+    }
+    .menu-toggle{
+        display: none;
+        font-size: 26px;
+        background: none;
+        border: none;
+        cursor: pointer;
+    }
+    .header-left{
+        display: flex;
+        align-items: center;
+    }
+    .header-logo{
+        max-height: 80px;
+        height: var(--logo-height);
+        width: auto;
+    }
+    .logo-placeholder{
+        font-weight: bold;
+    }
+    .header-center{
+        color: var(--text-color);
+        font-size: clamp(14px, 1.2vw, 18px);
+    }
+    .header-right{
+        display:flex;
+        justify-content: flex-end;
+    }
+    .header-btn{
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: clamp(6px, 1vw, 10px) clamp(12px, 2vw, 18px);
+        background-color: var(--btn-bg);
+        color: var(--btn-text);
+        text-decoration: none;
+        transition: 0.3s ease;
+        text-transform: uppercase;
+        font-size: clamp(12px, 1vw, 14px);
+    }
+    .header-btn .arrow{
+        transition: 0.3s ease;
+    }
+    .header-btn:hover .arrow{
+        transform: translateX(4px);
+        transition: transform 0.3 ease;
+    }
+    .mobile-drawer, .close-btn{
+        display:none;
+    }
+    /*--- Tablet view (responsive) ---*/
+    @media(max-width: 768px){
+        .custom-header{
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .hide-mobile{
+            display: none;
+        }
+        .menu-toggle {
+            display: block;
+            position: absolute;
+            left: 8px;
+            height: 24px;
+        }
+        .header-left {
+            width: 100%;
+            justify-content: center;
+        }
+        .header-center{
+            width: 34%;
+            text-align: center;
+        }
+        .header-right{
+            width: 33%;
+            justify-content: flex-end;
+        }
+        /*----- drawer menu - mobile only -----*/
+        .mobile-drawer {
+            position: fixed;
+            top: 7%;
+            width: 100%;
+            height: fit-content;
+            background-color: var(--header-clr);
+            z-index: 9999;
+            padding: 20px;
+            box-shadow: 8px 5px 3px #00000026;
+            transition:0.2s ease;
+            opacity: 0;
+            pointer-events: none;
+            display: block;
+        }
+        .close-btn {
+            font-size: 24px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            position: absolute;
+            left: 10px;
+            display: none;
+        }
+        .drawer-content {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            align-items: center;
+        }
+        .mobile-drawer.active{
+            opacity: 1;
+            pointer-events: all;
+        }
+    }
+</style>
+
+<script>
+    function openMenu(elem){
+        document.querySelector("#mobileDrawer").classList.add("active");
+        elem.style.display = 'none';
+        document.querySelector(".close-btn").style.display = 'block';
+
+    }
+    function closeMenu(elem){
+        document.querySelector("#mobileDrawer").classList.remove("active");
+        elem.style.display = 'none';;
+        document.querySelector(".menu-toggle").style.display = 'block';
+    }
+</script>
+
+
+
